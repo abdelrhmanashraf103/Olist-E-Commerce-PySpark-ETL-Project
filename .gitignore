@@ -1,0 +1,21 @@
+# Virtual environment
+olist_depi_env/
+
+# Large data files (download from Kaggle)
+data/*.csv
+data/*.parquet
+
+# Auto-generated outputs
+output/
+logs/
+checkpoints/
+reports/job_metrics.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db

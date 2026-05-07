@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Olist ETL — Final Report | Milestone 5</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark:    #060a0f;
+      --bg-card:    #0d1117;
+      --bg-deep:    #080c12;
+      --primary:    #00eeff;
+      --accent:     #C62B88;
+      --green:      #10b981;
+      --gold:       #f59e0b;
+      --red:        #ef4444;
+      --purple:     #8b5cf6;
+      --rose:       #f43f5e;
+      --teal:       #14b8a6;
+      --text-light: #e2e8f0;
+      --text-muted: #8892a4;
+      --border:     #1e2733;
+      --border-glow:#1a3a4a;
+      --gradient-neon: linear-gradient(135deg, #00eeff, #C62B88);
+      --shadow-neon: 0 0 30px rgba(0,238,255,0.15);
+      --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+      --font-mono: 'Fira Code', monospace;
+      --font-sans: 'Inter', sans-serif;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; font-size:16px; }
+    body { font-family:var(--font-sans); background:var(--bg-dark); color:var(--text-light); overflow-x:hidden; line-height:1.6; }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background:linear-gradient(180deg,var(--primary),var(--accent)); border-radius:3px; }
+    ::selection { background:var(--primary); color:var(--bg-dark); }
+
+    .loader-wrapper { position:fixed;inset:0;background:var(--bg-dark);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .5s,visibility .5s; }
+    .loader-wrapper.fade-out { opacity:0;visibility:hidden; }
+    .loader { width:44px;height:44px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    #progress-bar { position:fixed;top:0;left:0;height:2px;background:var(--gradient-neon);z-index:1001;transition:width .2s ease; }
+
+    nav { position:fixed;top:0;width:100%;background:rgba(6,10,15,.96);backdrop-filter:blur(12px);z-index:1000;border-bottom:1px solid var(--border);transition:all var(--transition); }
+    nav.scrolled { box-shadow:0 4px 24px rgba(0,238,255,.08); }
+    .nav-container { max-width:1280px;margin:0 auto;padding:.9rem 2rem;display:flex;justify-content:space-between;align-items:center; }
+    .logo { font-family:var(--font-mono);font-size:1.1rem;font-weight:700;background:var(--gradient-neon);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none; }
+    .nav-links { display:flex;gap:1.8rem;list-style:none; }
+    .nav-link { color:var(--text-muted);text-decoration:none;font-weight:600;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;position:relative;padding:.4rem 0;transition:color .2s; }
+    .nav-link::after { content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gradient-neon);transition:width var(--transition); }
+    .nav-link:hover { color:var(--primary); }
+    .nav-link:hover::after { width:100%; }
+    .mobile-menu-btn { display:none;background:none;border:none;color:var(--primary);font-size:1.4rem;cursor:pointer; }
+    .mobile-menu { position:fixed;top:0;right:-100%;width:80%;max-width:320px;height:100vh;background:var(--bg-card);box-shadow:-4px 0 24px rgba(0,0,0,.6);transition:right var(--transition);z-index:1001;padding:2rem; }
+    .mobile-menu.active { right:0; }
+    .mobile-menu-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem; }
+    .close-menu { background:none;border:none;color:var(--text-light);font-size:1.4rem;cursor:pointer; }
+    .mobile-nav-links { list-style:none; }
+    .mobile-nav-link { display:block;padding:.9rem 0;color:var(--text-light);text-decoration:none;font-weight:600;border-bottom:1px solid var(--border);transition:color .2s,padding-left .2s; }
+    .mobile-nav-link:hover { color:var(--primary);padding-left:.4rem; }
+    .mobile-menu-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;visibility:hidden;transition:all var(--transition);z-index:1000; }
+    .mobile-menu-overlay.active { opacity:1;visibility:visible; }
+
+    .hero { min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:6rem 2rem 4rem; }
+    #particles-js { position:absolute;inset:0;z-index:1; }
+    .hero-content { position:relative;z-index:2;text-align:center;max-width:860px;animation:fadeInUp 1s ease; }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+    .greeting { font-family:var(--font-mono);font-size:.78rem;color:var(--primary);margin-bottom:1.2rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase; }
+    .hero-title { font-size:clamp(2.2rem,5vw,3.8rem);font-weight:800;margin-bottom:1rem;line-height:1.12; }
+    .neon { background:var(--gradient-neon);-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+    .typed-wrapper { min-height:36px;margin-bottom:1.6rem; }
+    #typed { font-family:var(--font-mono);font-size:1.1rem;color:var(--accent);font-weight:500; }
+    .hero-description { font-size:1rem;color:var(--text-muted);margin:0 auto 2rem;max-width:560px;line-height:1.85;font-weight:400; }
+    .hero-buttons { display:flex;gap:1rem;justify-content:center;flex-wrap:wrap; }
+    .btn-neon { padding:.7rem 1.8rem;border:1.5px solid var(--primary);background:transparent;color:var(--primary);text-decoration:none;border-radius:6px;font-weight:600;font-size:.85rem;letter-spacing:.04em;transition:all var(--transition);position:relative;overflow:hidden;display:inline-block; }
+    .btn-neon::before { content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:var(--primary);transition:left var(--transition);z-index:-1; }
+    .btn-neon:hover::before { left:0; }
+    .btn-neon:hover { color:var(--bg-dark);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,238,255,.25); }
+    .btn-accent { border-color:var(--accent);color:var(--accent); }
+    .btn-accent::before { background:var(--accent); }
+    .btn-accent:hover { color:white;box-shadow:0 8px 20px rgba(198,43,136,.25); }
+
+    .stats-section { padding:4rem 2rem;background:var(--bg-card);border-top:1px solid var(--border);border-bottom:1px solid var(--border); }
+    .stats-container { max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2rem; }
+    .stat-item { text-align:center;padding:.8rem;transition:transform .2s; }
+    .stat-item:hover { transform:translateY(-4px); }
+    .stat-number { font-family:var(--font-mono);font-size:2.4rem;font-weight:700;background:var(--gradient-neon);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.3rem; }
+    .stat-label { color:var(--text-muted);font-size:.73rem;text-transform:uppercase;letter-spacing:.12em;font-weight:600; }
+
+    .section-title { font-size:clamp(1.7rem,3vw,2.4rem);font-weight:800;text-align:center;margin-bottom:3rem;position:relative; }
+    .section-title::after { content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:80px;height:2px;background:var(--gradient-neon); }
+
+    .team { padding:6rem 2rem;max-width:1280px;margin:0 auto; }
+    .team-grid { display:grid;grid-template-columns:repeat(2,1fr);gap:2rem; }
+    .team-card { background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:2rem 1.5rem;text-align:center;transition:all var(--transition);position:relative;overflow:hidden; }
+    .team-card::before { content:'';position:absolute;inset:0;background:var(--gradient-neon);opacity:0;transition:opacity var(--transition);z-index:0; }
+    .team-card:hover { transform:translateY(-8px);border-color:var(--primary);box-shadow:0 20px 40px rgba(0,238,255,.12); }
+    .team-card:hover::before { opacity:.04; }
+    .team-card > * { position:relative;z-index:1; }
+    .team-avatar { width:90px;height:90px;border-radius:50%;margin:0 auto 1.2rem;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;font-family:var(--font-mono);border:2px solid var(--border);transition:border-color .3s;position:relative;overflow:hidden; }
+    .team-avatar img { width:100%;height:100%;border-radius:50%;object-fit:cover; }
+    .team-card:hover .team-avatar { border-color:var(--primary); }
+    .team-ms-badge { display:inline-block;font-family:var(--font-mono);font-size:.65rem;font-weight:500;padding:3px 10px;border-radius:20px;margin-bottom:.8rem;letter-spacing:.08em; }
+    .ms1 { background:rgba(0,238,255,.1);color:var(--primary);border:1px solid rgba(0,238,255,.2); }
+    .ms2 { background:rgba(198,43,136,.1);color:var(--accent);border:1px solid rgba(198,43,136,.2); }
+    .ms3 { background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2); }
+    .ms4 { background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2); }
+    .ms5 { background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2); }
+    .ms6 { background:rgba(244,63,94,.1);color:var(--rose);border:1px solid rgba(244,63,94,.2); }
+    .ms7 { background:rgba(20,184,166,.1);color:var(--teal);border:1px solid rgba(20,184,166,.2); }
+    .team-name { font-size:1.05rem;font-weight:700;color:var(--text-light);margin-bottom:.3rem; }
+    .team-role { font-size:.78rem;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:.7rem;font-weight:400; }
+    .team-desc { font-size:.8rem;color:var(--text-muted);line-height:1.65;font-weight:400;margin-bottom:1rem; }
+    .team-socials { display:flex;justify-content:center;gap:.6rem;margin-top:.2rem; }
+    .team-social-link { width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--bg-dark);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);text-decoration:none;transition:all .2s;font-size:.85rem; }
+    .team-social-link:hover { border-color:var(--primary);color:var(--primary);transform:translateY(-2px); }
+
+    .insights { padding:6rem 2rem;max-width:1300px;margin:0 auto; }
+    .filter-buttons { display:flex;justify-content:center;gap:.8rem;margin-bottom:3rem;flex-wrap:wrap; }
+    .filter-btn { padding:.45rem 1.3rem;background:transparent;border:1.5px solid var(--border);color:var(--text-muted);border-radius:6px;cursor:pointer;font-family:var(--font-sans);font-weight:600;font-size:.78rem;letter-spacing:.04em;transition:all .2s; }
+    .filter-btn.active,.filter-btn:hover { border-color:var(--primary);color:var(--primary);background:rgba(0,238,255,.08); }
+    .chart-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:2rem;margin-bottom:2rem; }
+    .card { background:var(--bg-card);border-radius:14px;overflow:hidden;border:1px solid var(--border);transition:all var(--transition);position:relative; }
+    .card:hover { transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,238,255,.1);border-color:var(--border-glow); }
+    .card-content { padding:1.6rem; }
+    .card-title { font-size:.95rem;font-weight:600;margin-bottom:1.2rem;color:var(--primary);display:flex;align-items:center;gap:.5rem;font-family:var(--font-mono); }
+    .chart-container { position:relative;height:240px; }
+    .chart-note { font-size:.72rem;color:var(--text-muted);margin-top:8px;font-family:var(--font-mono); }
+
+    .quality { padding:6rem 2rem;background:var(--bg-card); }
+    .quality-inner { max-width:1200px;margin:0 auto; }
+    .issue-table { width:100%;border-collapse:collapse;font-size:.82rem; }
+    .issue-table thead tr { border-bottom:1px solid var(--border); }
+    .issue-table th { padding:11px 14px;text-align:left;color:var(--primary);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;font-family:var(--font-mono); }
+    .issue-table td { padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text-muted);vertical-align:middle; }
+    .issue-table tr:hover td { background:rgba(0,238,255,.02); }
+    .issue-table tr:last-child td { border-bottom:none; }
+    .tbl-name { color:var(--primary);font-family:var(--font-mono);font-size:.78rem; }
+    .tbl-count { font-family:var(--font-mono);color:var(--text-light); }
+    code { font-family:var(--font-mono);font-size:.75rem;background:rgba(0,238,255,.07);color:var(--primary);padding:1px 5px;border-radius:3px;border:1px solid rgba(0,238,255,.15); }
+    .badge { display:inline-block;padding:2px 9px;border-radius:12px;font-size:.7rem;font-weight:600;font-family:var(--font-mono); }
+    .badge-ok   { background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.18); }
+    .badge-warn { background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.18); }
+
+    .pipeline { padding:6rem 2rem;max-width:1200px;margin:0 auto; }
+    .pipeline-grid { display:grid;grid-template-columns:1fr 1fr;gap:2rem; }
+    @media(max-width:900px) { .pipeline-grid { grid-template-columns:1fr; } }
+    .timeline-list { display:flex;flex-direction:column; }
+    .tl-item { display:grid;grid-template-columns:20px 1fr;gap:0 14px;padding-bottom:24px; }
+    .tl-item:last-child { padding-bottom:0; }
+    .tl-left { display:flex;flex-direction:column;align-items:center; }
+    .tl-dot { width:10px;height:10px;border-radius:2px;flex-shrink:0;border:2px solid var(--primary);background:var(--bg-dark);box-shadow:0 0 6px rgba(0,238,255,.25);margin-top:4px;transition:background .2s; }
+    .tl-item:hover .tl-dot { background:var(--primary); }
+    .tl-line { flex:1;width:1px;background:linear-gradient(to bottom,var(--border),transparent);margin-top:5px; }
+    .tl-item:last-child .tl-line { display:none; }
+    .tl-ms { font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--primary);margin-bottom:2px;font-family:var(--font-mono); }
+    .tl-title { font-size:.92rem;font-weight:700;color:var(--text-light);margin-bottom:5px; }
+    .tl-desc { font-size:.8rem;color:var(--text-muted);line-height:1.7;font-weight:400; }
+    .tl-chip { display:inline-block;margin-top:7px;font-size:.64rem;font-family:var(--font-mono);padding:3px 9px;border-radius:12px;background:rgba(0,238,255,.06);color:var(--primary);border:1px solid rgba(0,238,255,.18); }
+    .dag { display:flex;flex-direction:column; }
+    .dag-node { display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg-deep);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:7px;transition:all var(--transition);cursor:default; }
+    .dag-node:hover { border-left-color:var(--primary);background:#0d1a2a;transform:translateX(3px); }
+    .dag-node.active { border-left-color:var(--primary);border-color:var(--border-glow); }
+    .dag-icon { font-size:.9rem;width:22px;text-align:center;flex-shrink:0; }
+    .dag-name { font-family:var(--font-mono);font-size:.75rem;color:var(--text-light);font-weight:400; }
+    .dag-type { margin-left:auto;font-size:.65rem;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap; }
+    .dag-arrow { height:14px;display:flex;align-items:center;padding-left:18px; }
+    .dag-arrow::before { content:'';width:1px;height:100%;background:var(--border); }
+    .code-grid { display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:2rem; }
+    @media(max-width:900px) { .code-grid { grid-template-columns:1fr; } }
+    .code-block { background:#040608;border:1px solid var(--border);border-radius:10px;overflow:hidden; }
+    .code-header { display:flex;align-items:center;gap:5px;padding:9px 14px;background:#060a0f;border-bottom:1px solid var(--border); }
+    .dot { width:9px;height:9px;border-radius:50%; }
+    .code-filename { margin-left:auto;font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted); }
+    pre { padding:16px 18px;font-family:var(--font-mono);font-size:.75rem;line-height:1.9;overflow-x:auto;color:#7dd3fc; }
+    .k  { color:#c792ea; }
+    .f  { color:#82b1ff; }
+    .s  { color:#f9c74f; }
+    .c  { color:#2d4460; }
+    .n  { color:#00eeff; }
+    .op { color:#4fc3f7; }
+
+    .milestones { padding:6rem 2rem;background:var(--bg-card); }
+    .milestones-inner { max-width:860px;margin:0 auto; }
+    .ms-timeline { position:relative;padding:2rem 0; }
+    .ms-timeline::before { content:'';position:absolute;left:50%;transform:translateX(-50%);width:1px;height:100%;background:var(--gradient-neon); }
+    .ms-item { position:relative;margin-bottom:3rem; }
+    .ms-item:nth-child(odd)  .ms-content { margin-left:auto; }
+    .ms-item:nth-child(even) .ms-content { text-align:right; }
+    .ms-content { background:var(--bg-dark);padding:1.8rem;border-radius:12px;border:1px solid var(--border);width:calc(50% - 2rem);transition:all var(--transition); }
+    .ms-content:hover { transform:scale(1.02);box-shadow:var(--shadow-neon);border-color:var(--primary); }
+    .ms-dot { position:absolute;top:1.8rem;width:16px;height:16px;background:var(--bg-dark);border:2px solid var(--primary);border-radius:50%;z-index:1;box-shadow:0 0 8px rgba(0,238,255,.35);transition:background .2s; }
+    .ms-item:hover .ms-dot { background:var(--primary); }
+    .ms-item:nth-child(odd)  .ms-dot { left:calc(50% - 8px); }
+    .ms-item:nth-child(even) .ms-dot { right:calc(50% - 8px); }
+    .ms-date  { color:var(--primary);font-weight:500;margin-bottom:.3rem;font-family:var(--font-mono);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase; }
+    .ms-title { font-size:1rem;font-weight:700;color:var(--text-light);margin-bottom:.4rem; }
+    .ms-company { color:var(--accent);font-weight:500;margin-bottom:.6rem;font-size:.85rem; }
+    .ms-desc  { color:var(--text-muted);font-size:.8rem;line-height:1.7;font-weight:400; }
+    .ms-chip  { display:inline-block;margin-top:8px;font-family:var(--font-mono);font-size:.64rem;padding:3px 9px;border-radius:12px;background:rgba(198,43,136,.07);color:var(--accent);border:1px solid rgba(198,43,136,.18); }
+
+    .toast { position:fixed;bottom:2rem;right:2rem;background:var(--bg-card);border:1px solid var(--primary);border-left:3px solid var(--primary);padding:.9rem 1.3rem;border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.5);transform:translateX(400px);transition:transform var(--transition);z-index:2000;max-width:320px;font-size:.85rem;font-family:var(--font-mono); }
+    .toast.show { transform:translateX(0); }
+    .toast.success { border-left-color:var(--green); }
+    .toast.error   { border-left-color:var(--red); }
+
+    .back-to-top { position:fixed;bottom:2rem;right:2rem;width:44px;height:44px;background:var(--gradient-neon);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;text-decoration:none;opacity:0;visibility:hidden;transition:all var(--transition);z-index:999; }
+    .back-to-top.show { opacity:1;visibility:visible; }
+    .back-to-top:hover { transform:translateY(-4px);box-shadow:0 8px 20px rgba(0,238,255,.35); }
+
+    footer { padding:3rem 2rem;background:var(--bg-card);border-top:1px solid var(--border);text-align:center; }
+    .footer-content { max-width:1200px;margin:0 auto; }
+    .social-links { display:flex;justify-content:center;gap:.8rem;margin-bottom:1.4rem; }
+    .social-link { width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--bg-dark);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);text-decoration:none;transition:all .2s; }
+    .social-link:hover { border-color:var(--primary);color:var(--primary);transform:translateY(-3px); }
+    .footer-text { color:var(--text-muted);font-size:.82rem;font-family:var(--font-mono); }
+
+    @media(max-width:768px) {
+      .nav-links { display:none; }
+      .mobile-menu-btn { display:block; }
+      .hero-title { font-size:2rem; }
+      .chart-grid { grid-template-columns:1fr; }
+      .ms-timeline::before { left:18px; }
+      .ms-content { width:calc(100% - 46px);margin-left:46px !important;text-align:left !important; }
+      .ms-dot { left:8px !important;right:auto !important; }
+      .team-grid { grid-template-columns:1fr; }
+      .planning-grid { grid-template-columns:1fr !important; }
+    }
+    @media(max-width:900px) and (min-width:769px) {
+      .planning-grid { grid-template-columns:repeat(2,1fr) !important; }
+    }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important;transition-duration:.01ms !important; } }
+
+    .new-section { padding:6rem 2rem; }
+    .new-section.alt-bg { background:var(--bg-card); }
+    .new-inner { max-width:1200px;margin:0 auto; }
+
+    .planning-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:1.8rem;margin-top:3rem; }
+    .plan-card { background:var(--bg-dark);border:1px solid var(--border);border-radius:14px;padding:1.8rem;position:relative;overflow:hidden;transition:all var(--transition); }
+    .plan-card::before { content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--gradient-neon); }
+    .plan-card:hover { transform:translateY(-6px);box-shadow:var(--shadow-neon);border-color:var(--border-glow); }
+    .plan-icon { font-size:2rem;margin-bottom:1rem; }
+    .plan-phase { font-family:var(--font-mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--primary);margin-bottom:.4rem; }
+    .plan-title { font-size:1rem;font-weight:700;color:var(--text-light);margin-bottom:.7rem; }
+    .plan-desc { font-size:.82rem;color:var(--text-muted);line-height:1.75; }
+    .plan-tags { display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1rem; }
+    .plan-tag { font-family:var(--font-mono);font-size:.62rem;padding:2px 8px;border-radius:10px;background:rgba(0,238,255,.07);color:var(--primary);border:1px solid rgba(0,238,255,.15); }
+    .gantt-wrap { margin-top:3rem;background:var(--bg-dark);border:1px solid var(--border);border-radius:14px;overflow:hidden; }
+    .gantt-header { display:grid;grid-template-columns:160px repeat(5,1fr);background:rgba(0,238,255,.05);border-bottom:1px solid var(--border);padding:.7rem 1.2rem;font-family:var(--font-mono);font-size:.65rem;color:var(--primary);letter-spacing:.1em;text-transform:uppercase; }
+    .gantt-row { display:grid;grid-template-columns:160px repeat(5,1fr);padding:.65rem 1.2rem;border-bottom:1px solid rgba(30,39,51,.5);align-items:center;transition:background .2s; }
+    .gantt-row:last-child { border-bottom:none; }
+    .gantt-row:hover { background:rgba(0,238,255,.02); }
+    .gantt-label { font-size:.78rem;color:var(--text-muted);font-weight:500; }
+    .gantt-bar-cell { padding:0 4px; }
+    .gantt-bar { height:10px;border-radius:4px;background:var(--gradient-neon);opacity:.75;transition:opacity .2s; }
+    .gantt-row:hover .gantt-bar { opacity:1; }
+
+    .lit-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.8rem;margin-top:3rem; }
+    .lit-card { background:var(--bg-dark);border:1px solid var(--border);border-radius:14px;padding:1.8rem;transition:all var(--transition);position:relative; }
+    .lit-card:hover { transform:translateY(-5px);box-shadow:var(--shadow-neon);border-color:var(--border-glow); }
+    .lit-type { display:inline-block;font-family:var(--font-mono);font-size:.62rem;padding:2px 9px;border-radius:10px;margin-bottom:.9rem;letter-spacing:.08em; }
+    .lit-paper { background:rgba(0,238,255,.08);color:var(--primary);border:1px solid rgba(0,238,255,.18); }
+    .lit-tool  { background:rgba(198,43,136,.08);color:var(--accent);border:1px solid rgba(198,43,136,.18); }
+    .lit-book  { background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.18); }
+    .lit-title { font-size:.95rem;font-weight:700;color:var(--text-light);margin-bottom:.5rem;line-height:1.4; }
+    .lit-authors { font-family:var(--font-mono);font-size:.7rem;color:var(--primary);margin-bottom:.6rem; }
+    .lit-summary { font-size:.8rem;color:var(--text-muted);line-height:1.75; }
+    .lit-relevance { margin-top:.9rem;font-size:.75rem;color:var(--text-muted);border-top:1px solid var(--border);padding-top:.7rem; }
+    .lit-relevance strong { color:var(--gold); }
+    .tech-stack-wrap { margin-top:3rem; }
+    .tech-stack-title { font-family:var(--font-mono);font-size:.75rem;color:var(--primary);text-transform:uppercase;letter-spacing:.12em;margin-bottom:1.2rem; }
+    .tech-pills { display:flex;flex-wrap:wrap;gap:.6rem; }
+    .tech-pill { display:flex;align-items:center;gap:.5rem;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;padding:.5rem 1rem;font-size:.8rem;font-weight:600;transition:all .2s; }
+    .tech-pill:hover { border-color:var(--primary);color:var(--primary);transform:translateY(-2px); }
+    .tech-pill-icon { font-size:1rem; }
+
+    .req-tabs { display:flex;gap:.6rem;margin-bottom:2.5rem;flex-wrap:wrap; }
+    .req-tab { padding:.5rem 1.3rem;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;font-family:var(--font-sans);color:var(--text-muted);background:transparent;transition:all .2s; }
+    .req-tab.active { border-color:var(--primary);color:var(--primary);background:rgba(0,238,255,.07); }
+    .req-content { display:none; }
+    .req-content.active { display:block; }
+    .req-table { width:100%;border-collapse:collapse;font-size:.82rem; }
+    .req-table thead tr { border-bottom:1px solid var(--border); }
+    .req-table th { padding:10px 14px;text-align:left;color:var(--primary);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;font-family:var(--font-mono); }
+    .req-table td { padding:10px 14px;border-bottom:1px solid rgba(30,39,51,.6);color:var(--text-muted);vertical-align:top;line-height:1.5; }
+    .req-table tr:last-child td { border-bottom:none; }
+    .req-table tr:hover td { background:rgba(0,238,255,.02); }
+    .req-id { font-family:var(--font-mono);color:var(--primary);font-size:.75rem;white-space:nowrap; }
+    .priority-high   { display:inline-block;padding:1px 8px;border-radius:8px;font-size:.67rem;font-family:var(--font-mono);background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2); }
+    .priority-med    { display:inline-block;padding:1px 8px;border-radius:8px;font-size:.67rem;font-family:var(--font-mono);background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2); }
+    .priority-low    { display:inline-block;padding:1px 8px;border-radius:8px;font-size:.67rem;font-family:var(--font-mono);background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2); }
+    .status-done     { display:inline-block;padding:1px 8px;border-radius:8px;font-size:.67rem;font-family:var(--font-mono);background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2); }
+    .status-partial  { display:inline-block;padding:1px 8px;border-radius:8px;font-size:.67rem;font-family:var(--font-mono);background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2); }
+
+    .design-grid { display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:3rem; }
+    @media(max-width:900px) { .design-grid { grid-template-columns:1fr; } }
+    .design-card { background:var(--bg-dark);border:1px solid var(--border);border-radius:14px;padding:1.8rem;transition:all var(--transition); }
+    .design-card:hover { border-color:var(--border-glow);box-shadow:var(--shadow-neon); }
+    .design-card-title { font-family:var(--font-mono);font-size:.8rem;color:var(--primary);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem; }
+    .arch-diagram { background:#040608;border:1px solid var(--border);border-radius:10px;padding:1.4rem;font-family:var(--font-mono);font-size:.72rem;line-height:2;color:#7dd3fc;overflow-x:auto; }
+    .arch-box { display:inline-block;border:1px solid rgba(0,238,255,.3);border-radius:5px;padding:1px 10px;color:var(--primary); }
+    .arch-arrow { color:var(--text-muted); }
+    .schema-table { width:100%;border-collapse:collapse;font-size:.78rem; }
+    .schema-table th { padding:8px 12px;text-align:left;color:var(--primary);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;font-family:var(--font-mono);border-bottom:1px solid var(--border); }
+    .schema-table td { padding:8px 12px;border-bottom:1px solid rgba(30,39,51,.5);color:var(--text-muted);font-family:var(--font-mono);font-size:.75rem; }
+    .schema-table tr:last-child td { border-bottom:none; }
+    .col-pk { color:var(--gold); }
+    .col-fk { color:var(--accent); }
+    .col-type { color:var(--green);font-size:.68rem; }
+    .decision-list { list-style:none; }
+    .decision-item { display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:.8rem 0;border-bottom:1px solid rgba(30,39,51,.5); }
+    .decision-item:last-child { border-bottom:none; }
+    .decision-num { font-family:var(--font-mono);font-size:.7rem;color:var(--primary);background:rgba(0,238,255,.08);border:1px solid rgba(0,238,255,.18);border-radius:4px;padding:2px 7px;white-space:nowrap;margin-top:2px; }
+    .decision-text { font-size:.82rem;color:var(--text-muted);line-height:1.6; }
+    .decision-text strong { color:var(--text-light); }
+  </style>
+</head>
+<body>
+
+<div class="loader-wrapper" id="loader"><div class="loader"></div></div>
+<div id="progress-bar"></div>
+
+<nav id="navbar">
+  <div class="nav-container">
+    <a href="#home" class="logo">OLIST·ETL</a>
+    <ul class="nav-links">
+      <li><a href="#home"         class="nav-link">Home</a></li>
+      <li><a href="#team"         class="nav-link">Team</a></li>
+      <li><a href="#insights"     class="nav-link">Insights</a></li>
+      <li><a href="#quality"      class="nav-link">Quality</a></li>
+      <li><a href="#pipeline"     class="nav-link">Pipeline</a></li>
+      <li><a href="#milestones"   class="nav-link">Milestones</a></li>
+      <li><a href="#planning"     class="nav-link">Planning</a></li>
+      <!-- <li><a href="#literature"   class="nav-link">Literature</a></li> -->
+      <li><a href="#requirements" class="nav-link">Requirements</a></li>
+      <li><a href="#design"       class="nav-link">Design</a></li>
+    </ul>
+    <button class="mobile-menu-btn" id="mobile-menu-btn"><i class="fas fa-bars"></i></button>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-header">
+    <span class="logo">OLIST·ETL</span>
+    <button class="close-menu" id="close-menu"><i class="fas fa-times"></i></button>
+  </div>
+  <ul class="mobile-nav-links">
+    <li><a href="#home"         class="mobile-nav-link">Home</a></li>
+    <li><a href="#team"         class="mobile-nav-link">Team</a></li>
+    <li><a href="#insights"     class="mobile-nav-link">Insights</a></li>
+    <li><a href="#quality"      class="mobile-nav-link">Quality</a></li>
+    <li><a href="#pipeline"     class="mobile-nav-link">Pipeline</a></li>
+    <li><a href="#milestones"   class="mobile-nav-link">Milestones</a></li>
+    <li><a href="#planning"     class="mobile-nav-link">Planning</a></li>
+    <!-- <li><a href="#literature"   class="mobile-nav-link">Literature</a></li> -->
+    <li><a href="#requirements" class="mobile-nav-link">Requirements</a></li>
+    <li><a href="#design"       class="mobile-nav-link">Design</a></li>
+  </ul>
+</div>
+<div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+
+<section class="hero" id="home">
+  <div id="particles-js"></div>
+  <div class="hero-content">
+    <p class="greeting">Milestone 5 · Final Report · Data Engineering</p>
+    <h1 class="hero-title">Brazilian <span class="neon">E-Commerce</span><br>Olist Dataset</h1>
+    <div class="typed-wrapper"><span id="typed"></span></div>
+    <p class="hero-description">
+      End-to-end data cleaning pipeline across 99,441 real orders and 9 relational tables,
+      built with Apache PySpark and automated via Apache Airflow.
+    </p>
+    <div class="hero-buttons">
+      <a href="#team"     class="btn-neon"><i class="fas fa-users"></i> Meet the Team</a>
+      <a href="#insights" class="btn-neon btn-accent"><i class="fas fa-chart-bar"></i> View Analytics</a>
+    </div>
+  </div>
+</section>
+
+<section class="stats-section">
+  <div class="stats-container">
+    <div class="stat-item"><div class="stat-number" data-target="99441">0</div><div class="stat-label">Total Orders</div></div>
+    <div class="stat-item"><div class="stat-number" data-target="9">0</div><div class="stat-label">Source Tables</div></div>
+    <div class="stat-item"><div class="stat-number" data-target="15" data-prefix="R$" data-suffix="M">0</div><div class="stat-label">Total Revenue</div></div>
+    <div class="stat-item"><div class="stat-number" data-target="3095">0</div><div class="stat-label">Active Sellers</div></div>
+    <div class="stat-item"><div class="stat-number" data-target="4" data-suffix=".09 ★">0</div><div class="stat-label">Avg Review Score</div></div>
+    <div class="stat-item"><div class="stat-number" data-target="96" data-suffix=".8%">0</div><div class="stat-label">Delivery Success</div></div>
+  </div>
+</section>
+
+<section class="team" id="team">
+  <h2 class="section-title" data-animate>Meet the Team</h2>
+  <div class="team-grid">
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(0,238,255,.15),rgba(0,238,255,.05))">
+        <img src="https://picsum.photos/seed/dina-yasser-face/200/200" alt="Dina Yasser">
+      </div>
+      <div class="team-ms-badge ms1">MILESTONE 1</div>
+      <div class="team-name">Dina Yasser</div>
+      <div class="team-role">Data Exploration</div>
+      <div class="team-desc">Loaded all 8 CSV files, identified quality issues, performed null analysis and schema profiling across 450K+ rows using PySpark.</div>
+      <div class="team-socials">
+        <a href="#" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="#" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(198,43,136,.15),rgba(198,43,136,.05))">
+        <img src="https://picsum.photos/seed/mahmoud-bahnsawy-face/200/200" alt="Mahmoud Bahnsawy">
+      </div>
+      <div class="team-ms-badge ms2">MILESTONE 2</div>
+      <div class="team-name">Mahmoud Bahnsawy</div>
+      <div class="team-role">ETL Pipeline</div>
+      <div class="team-desc">Built the modular 9-function PySpark ETL. Cleaned timestamps, translated categories, computed order totals, joined 8 tables into 1 master table.</div>
+      <div class="team-socials">
+        <a href="#" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="#" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05))">
+        <img src="../pics/abdo_haroun.jpg" alt="Abdelrahman Haroun">
+      </div>
+      <div class="team-ms-badge ms3">MILESTONE 3</div>
+      <div class="team-name">Abdelrahman Haroun</div>
+      <div class="team-role">Batch Deployment</div>
+      <div class="team-desc">Deployed the production batch job with partitioned Parquet output, incremental checkpoints, and EMR/YARN cluster configuration.</div>
+      <div class="team-socials">
+        <a href="https://abdelrhmanharoun103.netlify.app/" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="https://linkedin.com/in/abdelrahman-haroun-864a34222" target="_blank" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="https://github.com/abdelrhmanashraf103" target="_blank" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(245,158,11,.05))">
+        <img src="https://picsum.photos/seed/yara-elgammal-face/200/200" alt="Yara Elgammal">
+      </div>
+      <div class="team-ms-badge ms4">MILESTONE 4</div>
+      <div class="team-name">Yara Elgammal</div>
+      <div class="team-role">Airflow Automation</div>
+      <div class="team-desc">Built the 7-task Airflow DAG running daily at 02:00 AM with retry logic, Slack notifications, and automated 7-day log rotation.</div>
+      <div class="team-socials">
+        <a href="#" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="#" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(244,63,94,.15),rgba(244,63,94,.05))">
+        <img src="https://picsum.photos/seed/nedaa-megaed-face/200/200" alt="Nedaa Megaed">
+      </div>
+      <div class="team-ms-badge ms6">MILESTONE 5</div>
+      <div class="team-name">Nedaa Megaed</div>
+      <div class="team-role">Final Report</div>
+      <div class="team-desc">Authored the comprehensive interactive final report covering R$15.8M revenue, delivery analysis, and pipeline documentation.</div>
+      <div class="team-socials">
+        <a href="#" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="#" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+    <div class="team-card" data-animate>
+      <div class="team-avatar" style="background:linear-gradient(135deg,rgba(20,184,166,.15),rgba(20,184,166,.05))">
+        <img src="https://picsum.photos/seed/karima-gamal-face/200/200" alt="Karima Gamal">
+      </div>
+      <div class="team-ms-badge ms7">MILESTONE 5</div>
+      <div class="team-name">Karima Gamal</div>
+      <div class="team-role">Final Report</div>
+      <div class="team-desc">Authored the comprehensive interactive final report covering R$15.8M revenue, delivery analysis, and pipeline documentation.</div>
+      <div class="team-socials">
+        <a href="#" target="_blank" class="team-social-link" title="Portfolio"><i class="fas fa-globe"></i></a>
+        <a href="#" class="team-social-link" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="team-social-link" title="GitHub"><i class="fab fa-github"></i></a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="insights" id="insights">
+  <h2 class="section-title" data-animate>Analytics Dashboard</h2>
+  <div class="filter-buttons">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="payments">Payments</button>
+    <button class="filter-btn" data-filter="reviews">Reviews</button>
+    <button class="filter-btn" data-filter="orders">Orders</button>
+    <button class="filter-btn" data-filter="revenue">Revenue</button>
+    <button class="filter-btn" data-filter="delivery">Delivery</button>
+    <button class="filter-btn" data-filter="geo">Geography</button>
+  </div>
+  <div class="chart-grid">
+    <div class="card" data-category="payments" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-credit-card"></i> Payment Methods</div><div class="chart-container"><canvas id="paymentChart"></canvas></div></div></div>
+    <div class="card" data-category="reviews" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-star"></i> Review Score Distribution</div><div class="chart-container"><canvas id="reviewChart"></canvas></div></div></div>
+    <div class="card" data-category="orders" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-box"></i> Order Status</div><div class="chart-container"><canvas id="orderStatusChart"></canvas></div></div></div>
+    <div class="card" data-category="revenue" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-shopping-bag"></i> Top 8 Categories by Revenue (R$)</div><div class="chart-container"><canvas id="categoryChart"></canvas></div></div></div>
+    <div class="card" data-category="delivery" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-truck"></i> Delivery Performance</div><div class="chart-container"><canvas id="deliveryChart"></canvas></div></div></div>
+    <div class="card" data-category="delivery" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-clock"></i> Avg Delivery Days — Top Categories</div><div class="chart-container"><canvas id="deliveryDaysChart"></canvas></div></div></div>
+    <div class="card" data-category="geo" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-map-marker-alt"></i> Orders by State (Top 10)</div><div class="chart-container"><canvas id="stateChart"></canvas></div></div></div>
+    <div class="card" data-category="payments" data-animate><div class="card-content"><div class="card-title"><i class="fas fa-list-ol"></i> Credit Card Installments</div><div class="chart-container"><canvas id="installmentsChart"></canvas></div></div></div>
+  </div>
+  <div class="card" data-category="orders" data-animate style="margin-top:2rem">
+    <div class="card-content">
+      <div class="card-title"><i class="fas fa-calendar-alt"></i> Monthly Orders Trend (2017–2018)</div>
+      <div style="position:relative;height:260px"><canvas id="monthlyChart"></canvas></div>
+      <div class="chart-note">📌 Peak: <span style="color:var(--accent)">Nov 2017 · 7,544 orders</span> — Black Friday effect &nbsp;|&nbsp; Steady growth of ~96% from May 2017 to mid-2018</div>
+    </div>
+  </div>
+  <div class="card" data-category="revenue" data-animate style="margin-top:2rem">
+    <div class="card-content">
+      <div class="card-title"><i class="fas fa-dollar-sign"></i> Monthly Revenue Trend R$ (2017–2018)</div>
+      <div style="position:relative;height:260px"><canvas id="revenueMonthlyChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<section class="quality" id="quality">
+  <div class="quality-inner">
+    <h2 class="section-title" data-animate>Data Quality Issues &amp; Fixes</h2>
+    <div class="card" style="padding:0;overflow:hidden" data-animate>
+      <table class="issue-table">
+        <thead><tr><th>Table</th><th>Issue</th><th>Count</th><th>PySpark Fix</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tbl-name">orders</span></td><td>Null <code>order_approved_at</code></td><td><span class="tbl-count">160</span></td><td><code>fillna("1970-01-01")</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">orders</span></td><td>Null <code>order_delivered_carrier_date</code></td><td><span class="tbl-count">1,783</span></td><td>Keep null — non-delivered orders</td><td><span class="badge badge-warn">⚠️ KEPT</span></td></tr>
+          <tr><td><span class="tbl-name">orders</span></td><td>Null <code>order_delivered_customer_date</code></td><td><span class="tbl-count">2,965</span></td><td>Keep null — filter in delivery analysis</td><td><span class="badge badge-warn">⚠️ KEPT</span></td></tr>
+          <tr><td><span class="tbl-name">products</span></td><td>Null <code>product_category_name</code></td><td><span class="tbl-count">610</span></td><td><code>fillna("unknown")</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">products</span></td><td>Null dimensions (weight, size)</td><td><span class="tbl-count">2</span></td><td><code>fillna(0)</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">reviews</span></td><td>Null <code>review_comment_message</code></td><td><span class="tbl-count">58,274</span></td><td><code>fillna("")</code> + <code>has_comment</code> flag</td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">reviews</span></td><td>Null <code>review_comment_title</code></td><td><span class="tbl-count">87,658</span></td><td><code>fillna("")</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">reviews</span></td><td>Multiple reviews per order</td><td>—</td><td>Window dedup — keep latest</td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">payments</span></td><td>Multiple payment types per order</td><td>—</td><td>Aggregate → <code>main_payment_type</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">products</span></td><td>Portuguese category names</td><td>all rows</td><td>Join with translation CSV</td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">order_items</span></td><td>Price per item — need order total</td><td>—</td><td>GroupBy + sum → <code>order_total</code></td><td><span class="badge badge-ok">✅ FIXED</span></td></tr>
+          <tr><td><span class="tbl-name">orders</span></td><td>Late delivery detection</td><td><span class="tbl-count">~7,800</span></td><td><code>delivered_date &gt; estimated_date</code> → <code>is_late</code></td><td><span class="badge badge-ok">✅ FLAGGED</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="pipeline" id="pipeline">
+  <h2 class="section-title" data-animate>ETL Pipeline &amp; Airflow DAG</h2>
+  <div class="pipeline-grid" data-animate>
+    <div class="card">
+      <div class="card-content">
+        <div class="card-title"><i class="fas fa-cogs"></i> PySpark ETL — 9 Steps</div>
+        <div class="timeline-list">
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div><div class="tl-ms">Step 1–2</div><div class="tl-title">Load &amp; Explore</div><div class="tl-desc">Read all 8 CSVs with <code>inferSchema=True</code>. Count rows, detect nulls per column.</div><span class="tl-chip">milestone1_exploration.py</span></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div><div class="tl-ms">Step 3–4</div><div class="tl-title">Clean Each Table</div><div class="tl-desc">Parse timestamps, fill nulls, standardize text, validate ranges, translate categories to English.</div><span class="tl-chip">clean_orders() · clean_products()</span></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div><div class="tl-ms">Step 5</div><div class="tl-title">Aggregate &amp; Enrich</div><div class="tl-desc">Group items by order, detect late deliveries, compute delivery_days and revenue_tier.</div><span class="tl-chip">Window · groupBy · agg</span></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div><div class="tl-ms">Step 6</div><div class="tl-title">Build Master Table</div><div class="tl-desc">Join all 8 tables on order_id / customer_id / product_id into one analytical table.</div><span class="tl-chip">build_master() · 6-way JOIN</span></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div></div><div><div class="tl-ms">Step 7</div><div class="tl-title">Save Partitioned Parquet</div><div class="tl-desc">Write output partitioned by year/month for efficient downstream querying.</div><span class="tl-chip">partitionBy("year","month")</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-content">
+        <div class="card-title"><i class="fas fa-wind"></i> Airflow DAG — Daily @ 02:00 AM</div>
+        <div class="dag">
+          <div class="dag-node"><div class="dag-icon">📁</div><div class="dag-name">check_data_availability</div><div class="dag-type">PythonOperator</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node"><div class="dag-icon">🔍</div><div class="dag-name">validate_input_data</div><div class="dag-type">PythonOperator</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node"><div class="dag-icon">📢</div><div class="dag-name">notify_pipeline_start</div><div class="dag-type">PythonOperator</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node active"><div class="dag-icon">⚡</div><div class="dag-name">run_pyspark_etl</div><div class="dag-type" style="color:var(--primary)">BashOperator · spark-submit</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node"><div class="dag-icon">✅</div><div class="dag-name">check_etl_results</div><div class="dag-type">PythonOperator</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node"><div class="dag-icon">💬</div><div class="dag-name">send_completion_notification</div><div class="dag-type">Slack / Email</div></div>
+          <div class="dag-arrow"></div>
+          <div class="dag-node"><div class="dag-icon">🗑️</div><div class="dag-name">cleanup_old_logs</div><div class="dag-type">BashOperator · 7-day retention</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="code-grid" data-animate>
+    <div class="code-block">
+      <div class="code-header"><div class="dot" style="background:#ef4444"></div><div class="dot" style="background:#f59e0b"></div><div class="dot" style="background:#10b981"></div><div class="code-filename">clean_orders.py — Late Delivery Detection</div></div>
+<pre><span class="c"># Parse all timestamp columns</span>
+<span class="k">for</span> col <span class="k">in</span> ts_cols:
+    df = df.<span class="f">withColumn</span>(col,
+        F.<span class="f">to_timestamp</span>(col,
+            <span class="s">"yyyy-MM-dd HH:mm:ss"</span>))
+
+<span class="c"># Detect late deliveries</span>
+df = df.<span class="f">withColumn</span>(<span class="s">"is_late"</span>,
+    F.<span class="f">when</span>(
+        F.<span class="f">col</span>(<span class="s">"order_delivered_customer_date"</span>)
+          <span class="op">&gt;</span>
+        F.<span class="f">col</span>(<span class="s">"order_estimated_delivery_date"</span>),
+        <span class="n">True</span>
+    ).<span class="f">otherwise</span>(<span class="n">False</span>))</pre>
+    </div>
+    <div class="code-block">
+      <div class="code-header"><div class="dot" style="background:#ef4444"></div><div class="dot" style="background:#f59e0b"></div><div class="dot" style="background:#10b981"></div><div class="code-filename">etl_pipeline.py — Aggregate Items</div></div>
+<pre><span class="c"># Join English category translation</span>
+df = df.<span class="f">join</span>(translation,
+    <span class="s">"product_category_name"</span>, <span class="s">"left"</span>)
+
+<span class="c"># Aggregate items → order level</span>
+items_agg = items.<span class="f">groupBy</span>(<span class="s">"order_id"</span>).<span class="f">agg</span>(
+    F.<span class="f">count</span>(<span class="s">"order_item_id"</span>)
+     .<span class="f">alias</span>(<span class="s">"item_count"</span>),
+    F.<span class="f">round</span>(F.<span class="f">sum</span>(<span class="s">"price"</span>), 2)
+     .<span class="f">alias</span>(<span class="s">"products_value"</span>),
+    F.<span class="f">round</span>(F.<span class="f">sum</span>(<span class="s">"item_total"</span>), 2)
+     .<span class="f">alias</span>(<span class="s">"order_total"</span>),
+)</pre>
+    </div>
+  </div>
+</section>
+
+<section class="milestones" id="milestones">
+  <div class="milestones-inner">
+    <h2 class="section-title" data-animate>All 5 Milestones Completed</h2>
+    <div class="ms-timeline">
+      <div class="ms-item" data-animate>
+        <div class="ms-content">
+          <div class="ms-date">Milestone 1</div>
+          <h3 class="ms-title">Data Collection &amp; Exploration</h3>
+          <div class="ms-company">Abdelrahman Haroun · PySpark · Kaggle</div>
+          <p class="ms-desc">Loaded 8 CSV files (~450K rows total). Identified all quality issues: 160 null approval dates, 2,965 null delivery dates, 610 unknown product categories, 58K reviews without text.</p>
+          <span class="ms-chip">milestone1_exploration.py</span>
+        </div>
+        <div class="ms-dot"></div>
+      </div>
+      <div class="ms-item" data-animate>
+        <div class="ms-content">
+          <div class="ms-date">Milestone 2</div>
+          <h3 class="ms-title">PySpark ETL Pipeline</h3>
+          <div class="ms-company">Yara Elgammal · PySpark · 9 Functions</div>
+          <p class="ms-desc">Modular ETL with 9 cleaning functions. Parsed timestamps, translated categories, computed order totals, detected late deliveries, built sentiment labels. Joined 8 tables into 1 master table.</p>
+          <span class="ms-chip">milestone2_etl_olist.py</span>
+        </div>
+        <div class="ms-dot"></div>
+      </div>
+      <div class="ms-item" data-animate>
+        <div class="ms-content">
+          <div class="ms-date">Milestone 3</div>
+          <h3 class="ms-title">Batch Deployment</h3>
+          <div class="ms-company">Mahmoud Bahnsawy · spark-submit · YARN / EMR</div>
+          <p class="ms-desc">Production batch job with partitioned Parquet output (year/month), incremental checkpoints, environment variable config for cluster deployment, and JSON metrics export per run.</p>
+          <span class="ms-chip">milestone3_batch_job.py</span>
+        </div>
+        <div class="ms-dot"></div>
+      </div>
+      <div class="ms-item" data-animate>
+        <div class="ms-content">
+          <div class="ms-date">Milestone 4</div>
+          <h3 class="ms-title">Airflow Automation</h3>
+          <div class="ms-company">Dina Yasser · Apache Airflow · 7 Tasks</div>
+          <p class="ms-desc">DAG running daily at 02:00 AM. Includes retry logic (2 retries, 5-min delay), email-on-failure, Slack notifications with run summary, and automatic 7-day log rotation.</p>
+          <span class="ms-chip">ecommerce_etl_dag.py · 0 2 * * *</span>
+        </div>
+        <div class="ms-dot"></div>
+      </div>
+      <div class="ms-item" data-animate>
+        <div class="ms-content">
+          <div class="ms-date">Milestone 5</div>
+          <h3 class="ms-title">Documentation &amp; Final Report</h3>
+          <div class="ms-company">Nedaa Megaed · HTML · Interactive · Full Report</div>
+          <p class="ms-desc">Comprehensive report: R$15.8M total revenue, 96.8% delivery success rate, 8.1% late delivery rate, Black Friday peak (7,544 orders), Health &amp; Beauty as top revenue category.</p>
+          <span class="ms-chip">milestone5_final_report.html</span>
+        </div>
+        <div class="ms-dot"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="new-section" id="planning">
+  <div class="new-inner">
+    <h2 class="section-title" data-animate>Project Planning &amp; Management</h2>
+    <p style="text-align:center;color:var(--text-muted);margin-top:-1.5rem;margin-bottom:3rem;font-size:.9rem" data-animate>5 Milestones · 5 Members · ~6 Weeks</p>
+    <div class="planning-grid">
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">🎯</div>
+        <div class="plan-phase">Phase 0</div>
+        <div class="plan-title">Project Initiation</div>
+        <div class="plan-desc">Defined project scope and selected the dataset. Divided roles among the five team members. Set up the shared development environment and version control.</div>
+        <div class="plan-tags"><span class="plan-tag">Kaggle Dataset</span><span class="plan-tag">Team of 5</span><span class="plan-tag">Git Setup</span></div>
+      </div>
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">🔍</div>
+        <div class="plan-phase">Phase 1 — Week 1</div>
+        <div class="plan-title">Data Collection &amp; Exploration</div>
+        <div class="plan-desc">Loaded 9 CSV files containing 450K+ rows. Analyzed data quality, discovered nulls, and understood the relationships between tables.</div>
+        <div class="plan-tags"><span class="plan-tag">PySpark</span><span class="plan-tag">9 Tables</span><span class="plan-tag">Quality Report</span></div>
+      </div>
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">⚙️</div>
+        <div class="plan-phase">Phase 2 — Week 2–3</div>
+        <div class="plan-title">ETL Pipeline Development</div>
+        <div class="plan-desc">Built 9 modular cleaning functions. Handled timestamps, translated categories, computed delivery metrics, and merged all tables into a single Master Table.</div>
+        <div class="plan-tags"><span class="plan-tag">9 Functions</span><span class="plan-tag">Parquet</span><span class="plan-tag">Window Functions</span></div>
+      </div>
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">🚀</div>
+        <div class="plan-phase">Phase 3 — Week 4</div>
+        <div class="plan-title">Production Deployment</div>
+        <div class="plan-desc">Deployed the Batch Job on the cluster. Added incremental checkpoints, partitioned output, and JSON metrics export per run.</div>
+        <div class="plan-tags"><span class="plan-tag">spark-submit</span><span class="plan-tag">YARN/EMR</span><span class="plan-tag">Checkpointing</span></div>
+      </div>
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">🌀</div>
+        <div class="plan-phase">Phase 4 — Week 5</div>
+        <div class="plan-title">Airflow Automation</div>
+        <div class="plan-desc">Daily DAG with 7 tasks. Retry logic, email-on-failure, Slack notifications, and automatic log cleanup every 7 days.</div>
+        <div class="plan-tags"><span class="plan-tag">Airflow DAG</span><span class="plan-tag">0 2 * * *</span><span class="plan-tag">7 Tasks</span></div>
+      </div>
+      <div class="plan-card" data-animate>
+        <div class="plan-icon">📄</div>
+        <div class="plan-phase">Phase 5 — Week 6</div>
+        <div class="plan-title">Documentation &amp; Final Report</div>
+        <div class="plan-desc">Comprehensive documentation as an interactive HTML report. Analyzed R$15.8M revenue, built a 10-chart dashboard, and fully covered all milestones.</div>
+        <div class="plan-tags"><span class="plan-tag">Interactive HTML</span><span class="plan-tag">10 Charts</span><span class="plan-tag">Full Coverage</span></div>
+      </div>
+    </div>
+    <div class="gantt-wrap" data-animate>
+      <div class="gantt-header"><div>Task</div><div>Week 1</div><div>Week 2</div><div>Week 3</div><div>Week 4</div><div>Week 5–6</div></div>
+      <div class="gantt-row"><div class="gantt-label">Data Exploration</div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:90%"></div></div><div></div><div></div><div></div><div></div></div>
+      <div class="gantt-row"><div class="gantt-label">ETL Pipeline</div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:30%;opacity:.3"></div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:100%"></div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:80%"></div></div><div></div><div></div></div>
+      <div class="gantt-row"><div class="gantt-label">Batch Job Deploy</div><div></div><div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:40%;opacity:.35"></div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:100%"></div></div><div></div></div>
+      <div class="gantt-row"><div class="gantt-label">Airflow Automation</div><div></div><div></div><div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:30%;opacity:.3"></div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:60%"></div></div></div>
+      <div class="gantt-row"><div class="gantt-label">Documentation</div><div></div><div></div><div></div><div></div><div class="gantt-bar-cell"><div class="gantt-bar" style="width:100%"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- <section class="new-section alt-bg" id="literature">
+  <div class="new-inner">
+    <h2 class="section-title" data-animate>Literature Review</h2>
+    <p style="text-align:center;color:var(--text-muted);margin-top:-1.5rem;margin-bottom:3rem;font-size:.9rem" data-animate>The research papers, documentation, and datasets that grounded this project</p>
+    <div class="lit-grid">
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-paper">📄 Research Paper</span>
+        <div class="lit-title">Spark: Cluster Computing with Working Sets</div>
+        <div class="lit-authors">Zaharia et al., USENIX HotCloud 2010</div>
+        <div class="lit-summary">The original paper introducing Apache Spark as a faster alternative to MapReduce. It demonstrates how Spark keeps data in memory (RDD) to accelerate iterative operations by a factor of 10–100x.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> Foundation for using PySpark instead of Pandas to efficiently process 450K+ rows.</div>
+      </div>
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-paper">📄 Research Paper</span>
+        <div class="lit-title">The Unified Logging Infrastructure for Data Analytics at Twitter</div>
+        <div class="lit-authors">Lee et al., VLDB 2012</div>
+        <div class="lit-summary">Explores how large companies build unified data pipelines with continuous monitoring. Emphasizes the importance of schema validation and data quality checks before any analysis.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> Inspired the design of Milestone 1 as an independent Quality Gate before ETL.</div>
+      </div>
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-tool">🛠️ Documentation</span>
+        <div class="lit-title">Apache Airflow Official Documentation</div>
+        <div class="lit-authors">Apache Software Foundation, 2023</div>
+        <div class="lit-summary">The official Airflow documentation covering DAG design patterns, Operators, XCom for inter-task communication, and Retry Policies. Emphasizes Idempotency as a core principle.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> The Milestone 4 DAG was designed by directly following official best practices.</div>
+      </div>
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-book">📚 Dataset</span>
+        <div class="lit-title">Brazilian E-Commerce Public Dataset by Olist</div>
+        <div class="lit-authors">Olist Store / Kaggle, 2018</div>
+        <div class="lit-summary">A real-world dataset containing 99,441 orders from 2016 to 2018. Includes 9 related tables covering orders, products, sellers, reviews, and payments.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> Primary data source — real data reflecting genuine ETL challenges in production.</div>
+      </div>
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-paper">📄 Best Practice</span>
+        <div class="lit-title">Tidy Data</div>
+        <div class="lit-authors">Hadley Wickham, Journal of Statistical Software, 2014</div>
+        <div class="lit-summary">Defines the principles of "tidy data": each variable in a column, each observation in a row. Provides a shared vocabulary for describing data quality problems.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> The theoretical reference for the decision to merge all tables into a single Master Table.</div>
+      </div>
+      <div class="lit-card" data-animate>
+        <span class="lit-type lit-tool">🛠️ Framework</span>
+        <div class="lit-title">PySpark SQL Functions API Reference</div>
+        <div class="lit-authors">Apache Spark Documentation, v3.x</div>
+        <div class="lit-summary">Comprehensive reference for Window Functions, Aggregations, Timestamp Parsing, and Column Transformations in PySpark. Documents subtle behavioral differences compared to Pandas.</div>
+        <div class="lit-relevance"><strong>Relevance:</strong> Direct reference for <code>F.row_number()</code>, <code>F.datediff()</code>, and <code>F.to_timestamp()</code> used throughout the codebase.</div>
+      </div>
+    </div>
+    <div class="tech-stack-wrap" data-animate>
+      <div class="tech-stack-title">🔧 Technology Stack</div>
+      <div class="tech-pills">
+        <div class="tech-pill"><span class="tech-pill-icon">⚡</span>Apache PySpark 3.x</div>
+        <div class="tech-pill"><span class="tech-pill-icon">🌀</span>Apache Airflow 2.x</div>
+        <div class="tech-pill"><span class="tech-pill-icon">🐍</span>Python 3.10+</div>
+        <div class="tech-pill"><span class="tech-pill-icon">📦</span>Apache Parquet</div>
+        <div class="tech-pill"><span class="tech-pill-icon">📊</span>Kaggle Datasets</div>
+        <div class="tech-pill"><span class="tech-pill-icon">🗃️</span>CSV → Master Parquet</div>
+        <div class="tech-pill"><span class="tech-pill-icon">📋</span>JSON Metrics</div>
+        <div class="tech-pill"><span class="tech-pill-icon">🔧</span>Logging + Checkpoints</div>
+      </div>
+    </div>
+  </div>
+</section> -->
+
+<section class="new-section" id="requirements">
+  <div class="new-inner">
+    <h2 class="section-title" data-animate>Requirements Gathering</h2>
+    <p style="text-align:center;color:var(--text-muted);margin-top:-1.5rem;margin-bottom:2.5rem;font-size:.9rem" data-animate>Functional, Non-Functional, and Technical Constraints</p>
+    <div class="req-tabs" data-animate>
+      <button class="req-tab active" onclick="switchTab('func',this)">⚙️ Functional Requirements</button>
+      <button class="req-tab" onclick="switchTab('nonfunc',this)">📐 Non-Functional Requirements</button>
+      <button class="req-tab" onclick="switchTab('constraints',this)">🚧 Constraints &amp; Assumptions</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden" data-animate>
+      <div id="tab-func" class="req-content active" style="padding:0">
+        <table class="req-table">
+          <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th><th>Milestone</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="req-id">FR-01</span></td><td>Load 9 CSV files and generate a quality report covering row/column counts and nulls</td><td><span class="priority-high">High</span></td><td>M1</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-02</span></td><td>Clean timestamp columns and standardize their format to <code>yyyy-MM-dd HH:mm:ss</code></td><td><span class="priority-high">High</span></td><td>M2</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-03</span></td><td>Compute <code>delivery_days</code> and <code>is_late</code> flag for every completed order</td><td><span class="priority-high">High</span></td><td>M2</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-04</span></td><td>Translate category names from Portuguese to English using the translation file</td><td><span class="priority-high">High</span></td><td>M2</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-05</span></td><td>Merge 8 tables into a single Master Table and save as Parquet partitioned by year and month</td><td><span class="priority-high">High</span></td><td>M2</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-06</span></td><td>Run an incremental batch job that processes only new orders since the last run</td><td><span class="priority-high">High</span></td><td>M3</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-07</span></td><td>Export a JSON file containing run metrics (Duration, Records, Status) for each run</td><td><span class="priority-med">Med</span></td><td>M3</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-08</span></td><td>Run the full pipeline automatically every day at 2 AM via an Airflow DAG</td><td><span class="priority-high">High</span></td><td>M4</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-09</span></td><td>Send a Slack/email notification on pipeline success or failure with run details</td><td><span class="priority-med">Med</span></td><td>M4</td><td><span class="status-partial">⚠️ Partial</span></td></tr>
+            <tr><td><span class="req-id">FR-10</span></td><td>Verify the existence of all CSV files before the pipeline starts (Data Availability Check)</td><td><span class="priority-high">High</span></td><td>M4</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-11</span></td><td>Automatically clean up logs older than 7 days</td><td><span class="priority-low">Low</span></td><td>M4</td><td><span class="status-done">✅ Done</span></td></tr>
+            <tr><td><span class="req-id">FR-12</span></td><td>Document findings in an interactive report including charts, KPIs, and pipeline documentation</td><td><span class="priority-high">High</span></td><td>M5</td><td><span class="status-done">✅ Done</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-nonfunc" class="req-content" style="padding:0">
+        <table class="req-table">
+          <thead><tr><th>ID</th><th>Requirement</th><th>Acceptance Criterion</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="req-id">NF-01</span></td><td><strong>Performance</strong> — Process 99K+ orders in a reasonable time</td><td>Under 10 minutes in Local Mode</td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-02</span></td><td><strong>Scalability</strong> — Code runs on a cluster without modification</td><td>Only change <code>master("local[*]")</code> to <code>yarn</code></td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-03</span></td><td><strong>Reliability</strong> — Retry logic on failure</td><td>2 retries with 5-minute delay</td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-04</span></td><td><strong>Maintainability</strong> — Each step in an independent function</td><td>9 modular functions independently testable</td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-05</span></td><td><strong>Observability</strong> — Comprehensive logging for every step</td><td>Timestamps + Row Counts + Errors</td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-06</span></td><td><strong>Idempotency</strong> — Running the same job multiple times is safe</td><td><code>write.mode("overwrite")</code> + Checkpoint</td><td><span class="status-done">✅ Met</span></td></tr>
+            <tr><td><span class="req-id">NF-07</span></td><td><strong>Memory</strong> — Does not exceed 2GB driver memory</td><td><code>spark.driver.memory=2g</code></td><td><span class="status-done">✅ Met</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="tab-constraints" class="req-content" style="padding:0">
+        <table class="req-table">
+          <thead><tr><th>Type</th><th>Details</th></tr></thead>
+          <tbody>
+            <tr><td><span class="priority-high">🚧 Constraint</span></td><td>Data is static (Static Dataset) — Incremental processing is simulated via the Checkpoint file.</td></tr>
+            <tr><td><span class="priority-high">🚧 Constraint</span></td><td>Local Mode environment — suitable for development but not a true Production Cluster.</td></tr>
+            <tr><td><span class="priority-med">⚠️ Assumption</span></td><td>Timestamp format is always consistent in the CSV — any different format will produce <code>null</code> after parsing.</td></tr>
+            <tr><td><span class="priority-med">⚠️ Assumption</span></td><td>The translation file covers all categories — missing categories are treated as <code>"unknown"</code>.</td></tr>
+            <tr><td><span class="priority-med">⚠️ Assumption</span></td><td>Geolocation is linked to the ZIP code prefix (first 5 digits), not the full address.</td></tr>
+            <tr><td><span class="priority-low">ℹ️ Limitation</span></td><td>Slack notifications are present but disabled (Commented Out) — requires a real Webhook URL to activate.</td></tr>
+            <tr><td><span class="priority-low">ℹ️ Limitation</span></td><td>Master Table does not include the Sellers table as a separate Dimension Table.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="new-section alt-bg" id="design">
+  <div class="new-inner">
+    <h2 class="section-title" data-animate>System Analysis &amp; Design</h2>
+    <p style="text-align:center;color:var(--text-muted);margin-top:-1.5rem;margin-bottom:3rem;font-size:.9rem" data-animate>Architecture · Schema · Design Decisions</p>
+    <div class="design-grid">
+      <div class="design-card" data-animate style="grid-column:1/-1">
+        <div class="design-card-title"><i class="fas fa-project-diagram"></i> System Architecture</div>
+        <div class="arch-diagram">
+<span style="color:var(--text-muted)">┌─ DATA SOURCES ──────────────────────────────────────────────────────┐</span>
+  <span class="arch-box">olist_orders.csv</span>  <span class="arch-arrow">·</span>  <span class="arch-box">order_items.csv</span>  <span class="arch-arrow">·</span>  <span class="arch-box">payments.csv</span>
+  <span class="arch-box">reviews.csv</span>       <span class="arch-arrow">·</span>  <span class="arch-box">customers.csv</span>   <span class="arch-arrow">·</span>  <span class="arch-box">products.csv</span>
+  <span class="arch-box">sellers.csv</span>       <span class="arch-arrow">·</span>  <span class="arch-box">geolocation.csv</span> <span class="arch-arrow">·</span>  <span class="arch-box">translation.csv</span>
+<span style="color:var(--text-muted)">└─────────────────────────────────────────────────────────────────────┘</span>
+                             <span style="color:var(--primary)">↓  inferSchema=True  (Milestone 1)</span>
+<span style="color:var(--text-muted)">┌─ MILESTONE 1 ───────────────────────────────────────────────────────┐</span>
+  <span class="arch-box">PySpark Quality Report</span>   →   Null Analysis · Schema Profiling
+<span style="color:var(--text-muted)">└─────────────────────────────────────────────────────────────────────┘</span>
+                             <span style="color:var(--primary)">↓  clean_*()  (Milestone 2)</span>
+<span style="color:var(--text-muted)">┌─ MILESTONE 2 — ETL ─────────────────────────────────────────────────┐</span>
+  clean_orders()  ·  clean_items()  ·  clean_payments()  ·  clean_reviews()
+  clean_products()  ·  clean_geolocation()
+                             <span style="color:var(--primary)">↓  build_master()</span>
+         <span class="arch-box">olist_master.parquet</span>   partitionBy(purchase_year, purchase_month)
+<span style="color:var(--text-muted)">└─────────────────────────────────────────────────────────────────────┘</span>
+                             <span style="color:var(--primary)">↓  spark-submit  (Milestone 3)</span>
+<span style="color:var(--text-muted)">┌─ MILESTONE 3 — BATCH JOB ───────────────────────────────────────────┐</span>
+  Load Master → Incremental Filter (Checkpoint) → Partitioned Output
+  <span class="arch-box">last_run.json</span>  ·  <span class="arch-box">job_metrics.json</span>  ·  <span class="arch-box">output_partitioned/</span>
+<span style="color:var(--text-muted)">└─────────────────────────────────────────────────────────────────────┘</span>
+                             <span style="color:var(--primary)">↓  schedule: 0 2 * * *  (Milestone 4)</span>
+<span style="color:var(--text-muted)">┌─ MILESTONE 4 — AIRFLOW DAG ─────────────────────────────────────────┐</span>
+  T1:check_files → T2:exploration → T3:etl_pipeline → T4:batch_job
+  → T5:check_results → T6:send_notification → T7:cleanup_logs
+<span style="color:var(--text-muted)">└─────────────────────────────────────────────────────────────────────┘</span></div>
+      </div>
+      <div class="design-card" data-animate>
+        <div class="design-card-title"><i class="fas fa-table"></i> Master Table Schema (Key Columns)</div>
+        <table class="schema-table">
+          <thead><tr><th>Column</th><th>Source</th><th>Type</th></tr></thead>
+          <tbody>
+            <tr><td><span class="col-pk">order_id</span></td><td>orders</td><td><span class="col-type">STRING PK</span></td></tr>
+            <tr><td><span class="col-fk">customer_id</span></td><td>customers</td><td><span class="col-type">STRING FK</span></td></tr>
+            <tr><td>order_status</td><td>orders</td><td><span class="col-type">STRING</span></td></tr>
+            <tr><td>order_purchase_timestamp</td><td>orders</td><td><span class="col-type">TIMESTAMP</span></td></tr>
+            <tr><td>delivery_days</td><td>computed</td><td><span class="col-type">INT</span></td></tr>
+            <tr><td>is_late</td><td>computed</td><td><span class="col-type">BOOLEAN</span></td></tr>
+            <tr><td>item_count</td><td>order_items</td><td><span class="col-type">LONG</span></td></tr>
+            <tr><td>order_total</td><td>computed</td><td><span class="col-type">DOUBLE</span></td></tr>
+            <tr><td>total_paid</td><td>payments</td><td><span class="col-type">DOUBLE</span></td></tr>
+            <tr><td>main_payment_type</td><td>computed</td><td><span class="col-type">STRING</span></td></tr>
+            <tr><td>review_score</td><td>reviews</td><td><span class="col-type">INT</span></td></tr>
+            <tr><td>sentiment</td><td>computed</td><td><span class="col-type">STRING</span></td></tr>
+            <tr><td>customer_state</td><td>customers</td><td><span class="col-type">STRING</span></td></tr>
+            <tr><td>geo_lat / geo_lng</td><td>geolocation</td><td><span class="col-type">DOUBLE</span></td></tr>
+            <tr><td>revenue_tier</td><td>computed</td><td><span class="col-type">STRING</span></td></tr>
+            <tr><td>payment_match</td><td>computed</td><td><span class="col-type">BOOLEAN</span></td></tr>
+            <tr><td>purchase_year</td><td>computed</td><td><span class="col-type">INT (partition)</span></td></tr>
+            <tr><td>purchase_month</td><td>computed</td><td><span class="col-type">INT (partition)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="design-card" data-animate>
+        <div class="design-card-title"><i class="fas fa-lightbulb"></i> Key Design Decisions</div>
+        <ul class="decision-list">
+          <li class="decision-item"><span class="decision-num">D-01</span><div class="decision-text"><strong>Parquet over CSV for Output</strong> — Columnar storage speeds up queries by 5–10x and reduces file size by ~70%.</div></li>
+          <li class="decision-item"><span class="decision-num">D-02</span><div class="decision-text"><strong>Partition by Year/Month</strong> — Partition pruning when querying a specific time range avoids a full data scan.</div></li>
+          <li class="decision-item"><span class="decision-num">D-03</span><div class="decision-text"><strong>Modular Functions</strong> — Each table has an independent <code>clean_X()</code> function for easy testing, maintenance, and isolated modification.</div></li>
+          <li class="decision-item"><span class="decision-num">D-04</span><div class="decision-text"><strong>Aggregate Before Join</strong> — Aggregating Items and Payments at the Order level first reduces data volume and avoids a Cartesian Product.</div></li>
+          <li class="decision-item"><span class="decision-num">D-05</span><div class="decision-text"><strong>JSON Checkpoint for Incremental</strong> — Storing the last run time in a simple JSON file minimizes dependencies and simplifies debugging.</div></li>
+          <li class="decision-item"><span class="decision-num">D-06</span><div class="decision-text"><strong>Window Function for Dedup</strong> — <code>row_number()</code> with <code>partitionBy</code> selects the latest review per order with higher precision than <code>dropDuplicates()</code>.</div></li>
+          <li class="decision-item"><span class="decision-num">D-07</span><div class="decision-text"><strong>Brazil Bounding Box</strong> — Filtering coordinates outside Brazil's geographic bounds removes corrupt data without needing an external API.</div></li>
+          <li class="decision-item"><span class="decision-num">D-08</span><div class="decision-text"><strong>shuffle.partitions=8</strong> — Optimized for the local environment. In production, raise to 200+ based on data volume and core count.</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.req-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.req-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+
+<!-- ===== ENHANCED TEAM CREDITS FOOTER ===== -->
+<footer style="padding:0;background:var(--bg-card);border-top:1px solid var(--border);position:relative;overflow:hidden">
+  <!-- Subtle top glow -->
+  <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:400px;height:1px;background:var(--gradient-neon);filter:blur(1px)"></div>
+
+  <!-- Credits Section -->
+  <div style="max-width:1100px;margin:0 auto;padding:4rem 2rem 2rem">
+    <div style="text-align:center;margin-bottom:3rem" data-animate>
+      <p style="font-family:var(--font-mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--primary);margin-bottom:.6rem">Acknowledgment</p>
+      <h2 style="font-size:clamp(1.4rem,3vw,1.9rem);font-weight:800;color:var(--text-light);margin-bottom:.8rem">Project Credits</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;max-width:520px;margin:0 auto;line-height:1.7">This project was developed as part of the Data Engineering Professional Diploma (DEPI) program. Each team member contributed a critical milestone to deliver this end-to-end ETL pipeline.</p>
+    </div>
+
+    <!-- Team Grid - 6 Cards in One Row -->
+    <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:1.2rem;margin-bottom:3.5rem" class="team-grid-responsive" data-animate>
+      <!-- Dina -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(0,238,255,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(0,238,255,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--primary)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(0,238,255,.2)">
+          <img src="https://picsum.photos/seed/dina-yasser-face/200/200" alt="Dina Yasser" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Dina Yasser</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--primary);margin-bottom:.5rem">MILESTONE 1</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">Data Exploration &amp; Quality Profiling</div>
+      </div>
+      <!-- Mahmoud -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(198,43,136,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(198,43,136,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(198,43,136,.2)">
+          <img src="https://picsum.photos/seed/mahmoud-bahnsawy-face/200/200" alt="Mahmoud Bahnsawy" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Mahmoud Bahnsawy</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--accent);margin-bottom:.5rem">MILESTONE 2</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">PySpark ETL Pipeline</div>
+      </div>
+      <!-- Abdelrahman -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(16,185,129,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(16,185,129,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(16,185,129,.2)">
+          <img src="../pics/abdo_haroun.jpg" alt="Abdelrahman Haroun" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Abdelrahman Haroun</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--green);margin-bottom:.5rem">MILESTONE 3</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">Batch Deployment</div>
+      </div>
+      <!-- Yara -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(245,158,11,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(245,158,11,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(245,158,11,.2)">
+          <img src="https://picsum.photos/seed/yara-elgammal-face/200/200" alt="Yara Elgammal" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Yara Elgammal</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--gold);margin-bottom:.5rem">MILESTONE 4</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">Airflow Automation</div>
+      </div>
+      <!-- Nedaa -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(244,63,94,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(244,63,94,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--rose)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(244,63,94,.2)">
+          <img src="https://picsum.photos/seed/nedaa-megaed-face/200/200" alt="Nedaa Megaed" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Nedaa Megaed</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--rose);margin-bottom:.5rem">MILESTONE 5</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">Final Report &amp; Documentation</div>
+      </div>
+      <!-- Karima -->
+      <div style="background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1.4rem 1rem;text-align:center;transition:all .3s;position:relative;overflow:hidden" onmouseover="this.style.borderColor='rgba(20,184,166,.3)';this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(20,184,166,.08)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)';this.style.boxShadow='none'">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--teal)"></div>
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto .8rem;overflow:hidden;border:2px solid rgba(20,184,166,.2)">
+          <img src="https://picsum.photos/seed/karima-gamal-face/200/200" alt="Karima Gamal" style="width:100%;height:100%;object-fit:cover">
+        </div>
+        <div style="font-size:.88rem;font-weight:700;color:var(--text-light);margin-bottom:.25rem">Karima Gamal</div>
+        <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--teal);margin-bottom:.5rem">MILESTONE 5</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.5">Final Report &amp; Documentation</div>
+      </div>
+    </div>
+
+    <!-- DEPI Badge -->
+    <div style="text-align:center;margin-bottom:2.5rem" data-animate>
+      <div style="display:inline-flex;align-items:center;gap:.8rem;background:var(--bg-dark);border:1px solid var(--border);border-radius:12px;padding:1rem 2rem;transition:all .3s" onmouseover="this.style.borderColor='var(--border-glow)';this.style.boxShadow='var(--shadow-neon)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+        <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,rgba(0,238,255,.12),rgba(198,43,136,.12));display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="fas fa-graduation-cap" style="font-size:1.2rem;background:var(--gradient-neon);-webkit-background-clip:text;-webkit-text-fill-color:transparent"></i>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:.9rem;font-weight:700;color:var(--text-light);letter-spacing:.02em">Data Engineering Professional Diploma</div>
+          <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.06em">DEPI · Digital Egypt Pioneers Initiative · 2025–2026</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin-bottom:2rem"></div>
+
+    <!-- Bottom Bar -->
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem">
+      <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted);line-height:1.8">
+        <span style="color:var(--primary);font-weight:600">OLIST·ETL</span> &nbsp;·&nbsp;
+        99,441 orders &nbsp;·&nbsp;
+        R$15.8M revenue &nbsp;·&nbsp;
+        2016–2018 &nbsp;·&nbsp;
+        PySpark + Airflow
+      </div>
+      <div style="display:flex;align-items:center;gap:1.2rem">
+        <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text-muted)">
+          <i class="fas fa-code" style="color:var(--accent);margin-right:4px"></i> Built with Purpose
+        </span>
+        <span style="font-family:var(--font-mono);font-size:.65rem;color:rgba(255,255,255,.2)">
+          &copy; 2026 DEPI Team
+        </span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Responsive Styles for Team Grid -->
+<style>
+  @media (max-width: 1100px) {
+    .team-grid-responsive {
+      grid-template-columns: repeat(3, 1fr) !important;
+    }
+  }
+  @media (max-width: 640px) {
+    .team-grid-responsive {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+</style>
+
+<a href="#home" class="back-to-top" id="back-to-top"><i class="fas fa-arrow-up"></i></a>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+<script>
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = '#1e2733';
+Chart.defaults.font.family = "'Fira Code', monospace";
+Chart.defaults.font.size = 11;
+
+const COLORS = { cyan:'#00eeff', pink:'#C62B88', green:'#10b981', gold:'#f59e0b', red:'#ef4444', purple:'#8b5cf6', blue:'#3b82f6', orange:'#f97316' };
+const alpha = (hex, a) => hex + Math.round(a*255).toString(16).padStart(2,'0');
+
+new Chart(document.getElementById('paymentChart'), { type:'doughnut', data:{ labels:['Credit Card','Boleto','Voucher','Debit Card'], datasets:[{ data:[76795,19784,5775,1529], backgroundColor:[alpha(COLORS.cyan,.8),alpha(COLORS.pink,.8),alpha(COLORS.gold,.8),alpha(COLORS.green,.8)], borderColor:'#060a0f', borderWidth:2, hoverOffset:8 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ padding:14, boxWidth:10, color:'#8892a4' } }, tooltip:{ callbacks:{ label:(c)=>` ${c.label}: ${c.raw.toLocaleString()} (${(c.raw/103883*100).toFixed(1)}%)` } } } } });
+
+new Chart(document.getElementById('reviewChart'), { type:'bar', data:{ labels:['★ 5','★ 4','★ 3','★ 2','★ 1'], datasets:[{ label:'Reviews', data:[57328,19142,8179,3151,11424], backgroundColor:[alpha(COLORS.green,.7),alpha(COLORS.green,.5),alpha(COLORS.gold,.6),alpha(COLORS.red,.5),alpha(COLORS.red,.7)], borderColor:[COLORS.green,COLORS.green,COLORS.gold,COLORS.red,COLORS.red], borderWidth:1, borderRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` ${c.raw.toLocaleString()} reviews` } } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } }, y:{ grid:{ display:false }, ticks:{ color:'#f59e0b', font:{ size:13 } } } } } });
+
+new Chart(document.getElementById('orderStatusChart'), { type:'pie', data:{ labels:['Delivered','Shipped','Canceled','Unavailable','Invoiced','Other'], datasets:[{ data:[96478,1107,625,609,314,308], backgroundColor:[alpha(COLORS.green,.8),alpha(COLORS.cyan,.8),alpha(COLORS.red,.8),alpha(COLORS.gold,.7),alpha(COLORS.pink,.7),alpha(COLORS.purple,.6)], borderColor:'#060a0f', borderWidth:2, hoverOffset:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ padding:10, boxWidth:9, color:'#8892a4', font:{size:10} } }, tooltip:{ callbacks:{ label:(c)=>` ${c.label}: ${c.raw.toLocaleString()}` } } } } });
+
+new Chart(document.getElementById('categoryChart'), { type:'bar', data:{ labels:['Health & Beauty','Watches & Gifts','Bed Bath Table','Sports & Leisure','Computers & Acc.','Furniture & Decor','Garden Tools','Housewares'], datasets:[{ label:'Revenue (R$)', data:[1260000,1210000,1040000,988000,912000,730000,682000,630000], backgroundColor:[COLORS.cyan,COLORS.pink,COLORS.green,COLORS.gold,COLORS.red,COLORS.purple,COLORS.blue,COLORS.orange].map(c=>alpha(c,.7)), borderColor:[COLORS.cyan,COLORS.pink,COLORS.green,COLORS.gold,COLORS.red,COLORS.purple,COLORS.blue,COLORS.orange], borderWidth:1, borderRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` R$ ${(c.raw/1000).toFixed(0)}K` } } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4', callback:(v)=>'R$'+(v/1000)+'K' } }, y:{ grid:{ display:false }, ticks:{ color:'#e2e8f0', font:{size:10} } } } } });
+
+new Chart(document.getElementById('deliveryChart'), { type:'doughnut', data:{ labels:['On Time','Late Delivery','Not Delivered'], datasets:[{ data:[88141,7800,3500], backgroundColor:[alpha(COLORS.green,.8),alpha(COLORS.red,.75),alpha(COLORS.gold,.7)], borderColor:'#060a0f', borderWidth:2, hoverOffset:8 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ padding:14, boxWidth:10 } }, tooltip:{ callbacks:{ label:(c)=>` ${c.label}: ${c.raw.toLocaleString()} (${(c.raw/99441*100).toFixed(1)}%)` } } } } });
+
+new Chart(document.getElementById('deliveryDaysChart'), { type:'bar', data:{ labels:['Office Furniture','Housewares','Health & Beauty','Electronics','Sports','Computers','Watches','Bed Bath'], datasets:[{ label:'Avg Days', data:[16.2,14.8,12.4,13.1,11.9,12.8,11.3,12.1], backgroundColor:alpha(COLORS.cyan,.6), borderColor:COLORS.cyan, borderWidth:1, borderRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` ${c.raw} days avg` } } }, scales:{ x:{ grid:{ display:false }, ticks:{ color:'#8892a4', font:{size:9} } }, y:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' }, min:8 } } } });
+
+new Chart(document.getElementById('stateChart'), { type:'bar', data:{ labels:['SP','RJ','MG','RS','PR','SC','BA','DF','ES','GO'], datasets:[{ label:'Orders', data:[41746,12852,11635,5466,5045,3637,3380,2140,2033,2020], backgroundColor:alpha(COLORS.pink,.7), borderColor:COLORS.pink, borderWidth:1, borderRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` ${c.raw.toLocaleString()} orders` } } }, scales:{ x:{ grid:{ display:false }, ticks:{ color:'#e2e8f0', font:{size:11} } }, y:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } } } } });
+
+new Chart(document.getElementById('installmentsChart'), { type:'bar', data:{ labels:['1x','2x','3x','4x','5x','6x','7x','8x','10x','12x+'], datasets:[{ label:'Orders', data:[19820,12650,10980,7240,5680,4920,1840,3210,2970,8485], backgroundColor:alpha(COLORS.gold,.7), borderColor:COLORS.gold, borderWidth:1, borderRadius:4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` ${c.raw.toLocaleString()} orders` } } }, scales:{ x:{ grid:{ display:false }, ticks:{ color:'#e2e8f0' } }, y:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } } } } });
+
+new Chart(document.getElementById('monthlyChart'), { type:'line', data:{ labels:["May'17","Jun","Jul","Aug","Sep","Oct","Nov🔥","Dec","Jan'18","Feb","Mar","Apr","May","Jun","Jul","Aug"], datasets:[{ label:'Orders', fill:true, data:[3700,3245,4026,4331,4285,4631,7544,5673,7269,6728,7211,6939,6873,6167,6292,6512], borderColor:COLORS.cyan, borderWidth:2, pointRadius:4, pointBackgroundColor:(ctx)=>ctx.dataIndex===6?COLORS.pink:COLORS.cyan, pointBorderColor:'#060a0f', pointHoverRadius:7, backgroundColor:(ctx)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,alpha(COLORS.cyan,.25)); g.addColorStop(1,alpha(COLORS.cyan,.01)); return g; }, tension:0.4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` ${c.raw.toLocaleString()} orders` } } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } }, y:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } } } } });
+
+new Chart(document.getElementById('revenueMonthlyChart'), { type:'line', data:{ labels:["May'17","Jun","Jul","Aug","Sep","Oct","Nov🔥","Dec","Jan'18","Feb","Mar","Apr","May","Jun","Jul","Aug"], datasets:[{ label:'Revenue R$', fill:true, data:[420000,368000,458000,492000,487000,526000,856000,645000,826000,765000,820000,789000,781000,701000,715000,740000], borderColor:COLORS.pink, borderWidth:2, pointRadius:4, pointBackgroundColor:(ctx)=>ctx.dataIndex===6?COLORS.gold:COLORS.pink, pointBorderColor:'#060a0f', pointHoverRadius:7, backgroundColor:(ctx)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,260); g.addColorStop(0,alpha(COLORS.pink,.22)); g.addColorStop(1,alpha(COLORS.pink,.01)); return g; }, tension:0.4 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:(c)=>` R$ ${(c.raw/1000).toFixed(0)}K` } } }, scales:{ x:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4' } }, y:{ grid:{ color:'rgba(255,255,255,.04)' }, ticks:{ color:'#8892a4', callback:(v)=>'R$'+(v/1000)+'K' } } } } });
+
+window.addEventListener('load',()=>{ setTimeout(()=>document.getElementById('loader').classList.add('fade-out'),400); });
+window.addEventListener('scroll',()=>{ const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100; document.getElementById('progress-bar').style.width=pct+'%'; document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>50); document.getElementById('back-to-top').classList.toggle('show',window.scrollY>300); });
+
+const mMenu=document.getElementById('mobile-menu'),mOverlay=document.getElementById('mobile-menu-overlay');
+document.getElementById('mobile-menu-btn').onclick=()=>{ mMenu.classList.add('active');mOverlay.classList.add('active');document.body.style.overflow='hidden'; };
+function closeM(){ mMenu.classList.remove('active');mOverlay.classList.remove('active');document.body.style.overflow=''; }
+document.getElementById('close-menu').onclick=closeM; mOverlay.onclick=closeM;
+document.querySelectorAll('.mobile-nav-link').forEach(l=>l.addEventListener('click',closeM));
+
+particlesJS('particles-js',{ particles:{ number:{value:45,density:{enable:true,value_area:900}}, color:{value:'#00eeff'}, shape:{type:'circle'}, opacity:{value:.35,random:true}, size:{value:2.5,random:true}, line_linked:{enable:true,distance:140,color:'#00eeff',opacity:.2,width:1}, move:{enable:true,speed:1.5,direction:'none',random:true,out_mode:'out'} }, interactivity:{ detect_on:'canvas', events:{onhover:{enable:true,mode:'repulse'},onclick:{enable:true,mode:'push'},resize:true}, modes:{repulse:{distance:90,duration:.4},push:{particles_nb:2}} }, retina_detect:true });
+
+new Typed('#typed',{ strings:['PySpark ETL Pipeline','Data Cleaning · 8 Tables','Airflow Automation','R$15.8M Revenue Analyzed','Team of 5 Engineers'], typeSpeed:50,backSpeed:28,backDelay:1800,loop:true,showCursor:true,cursorChar:'|' });
+
+const counterObs=new IntersectionObserver((entries)=>{ entries.forEach(entry=>{ if(!entry.isIntersecting)return; const el=entry.target,target=+el.getAttribute('data-target'),prefix=el.getAttribute('data-prefix')||'',suffix=el.getAttribute('data-suffix')||''; let start=0; const step=target/(1800/16); const timer=setInterval(()=>{ start=Math.min(start+step,target); el.textContent=prefix+Math.floor(start).toLocaleString()+suffix; if(start>=target)clearInterval(timer); },16); counterObs.unobserve(el); }); },{threshold:.5});
+document.querySelectorAll('.stat-number').forEach(c=>counterObs.observe(c));
+
+const animObs=new IntersectionObserver((entries)=>{ entries.forEach((entry,i)=>{ if(entry.isIntersecting){ setTimeout(()=>{ entry.target.style.opacity='1'; entry.target.style.transform='translateY(0)'; },i*80); animObs.unobserve(entry.target); } }); },{threshold:.08});
+document.querySelectorAll('[data-animate]').forEach(el=>{ el.style.opacity='0'; el.style.transform='translateY(22px)'; el.style.transition='opacity .6s ease,transform .6s ease'; animObs.observe(el); });
+
+const filterBtns=document.querySelectorAll('.filter-btn');
+filterBtns.forEach(btn=>{ btn.addEventListener('click',()=>{ filterBtns.forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const filter=btn.dataset.filter; document.querySelectorAll('.chart-grid .card').forEach(card=>{ const show=filter==='all'||card.dataset.category===filter; card.style.display=show?'block':'none'; }); }); });
+</script>
+</body>
+</html>
