@@ -3,19 +3,19 @@
 MILESTONE 4 — Apache Airflow DAG
 Olist Brazilian E-Commerce Dataset
 =============================================================
-Schedule: كل يوم الساعة 02:00 AM
+Schedule: every day at 2:00 AM (server time)
 
 Setup:
   pip install apache-airflow
   export AIRFLOW_HOME=~/airflow
   airflow db init
-  airflow users create --username admin --password admin \
-    --firstname Admin --lastname User \
+  airflow users create --username abdo_haroun103 --password haroun1032000 \
+    --firstname Abdelrahman --lastname Haroun \
     --role Admin --email admin@example.com
   cp dags/olist_etl_dag.py ~/airflow/dags/
-  airflow webserver --port 8080   ← Terminal 1
+  airflow webserver --port 9000   ← Terminal 1
   airflow scheduler               ← Terminal 2
-  ثم افتح: http://localhost:8080
+ Then open: http://localhost:9000
 """
 
 from datetime import datetime, timedelta
@@ -64,7 +64,7 @@ DEFAULT_ARGS = {
 
 # ── Task Functions ────────────────────────────────────────
 def check_data_files(**ctx):
-    """T1: تأكد إن كل ملفات الـ CSV موجودة."""
+    """T1:Ensure all 9 required CSV files are present before starting ETL."""
     missing = []
     for fname in REQUIRED_FILES:
         fpath = os.path.join(DATA_DIR, fname)
@@ -72,21 +72,21 @@ def check_data_files(**ctx):
             missing.append(fname)
         else:
             size = os.path.getsize(fpath) / 1_000_000
-            log.info(f"  ✅ {fname} ({size:.1f} MB)")
+            log.info(f"   {fname} ({size:.1f} MB)")
     if missing:
-        raise FileNotFoundError(f"❌ Missing: {missing}")
-    log.info("✅ All 9 files found")
+        raise FileNotFoundError(f" Missing: {missing}")
+    log.info(" All 9 files found")
 
 
 def check_results(**ctx):
-    """T5: تحقق من نجاح الـ ETL."""
+    """T5:check the ETL results by reading the metrics JSON file produced by the batch job."""
     if not os.path.exists(METRICS):
-        raise FileNotFoundError("❌ Metrics not found — ETL failed?")
+        raise FileNotFoundError(" Metrics not found — ETL failed?")
     with open(METRICS) as f:
         m = json.load(f)
     if m.get("status") != "SUCCESS":
-        raise RuntimeError(f"❌ ETL failed: {m}")
-    log.info(f"✅ ETL OK: {m['total_records']:,} records in {m['duration_seconds']}s")
+        raise RuntimeError(f" ETL failed: {m}")
+    log.info(f" ETL OK: {m['total_records']:,} records in {m['duration_seconds']}s")
     ctx["ti"].xcom_push(key="metrics", value=m)
 
 
@@ -95,16 +95,16 @@ def send_notification(**ctx):
     m        = ctx["ti"].xcom_pull(key="metrics")
     run_date = ctx["ds"]
     msg = (
-        f"✅ Olist ETL Completed\n"
-        f"📅 Date:     {run_date}\n"
-        f"📦 Records:  {m['total_records']:,}\n"
-        f"⏱  Duration: {m['duration_seconds']}s\n"
-        f"💾 Output:   {m['output_path']}\n"
+        f" Olist ETL Completed\n"
+        f" Date:     {run_date}\n"
+        f" Records:  {m['total_records']:,}\n"
+        f" Duration: {m['duration_seconds']}s\n"
+        f" Output:   {m['output_path']}\n"
     )
     # Uncomment to send Slack:
     # import requests
     # requests.post(Variable.get("SLACK_WEBHOOK"), json={"text": msg})
-    log.info(f"📢 {msg}")
+    log.info(f" {msg}")
 
 
 # ── DAG ───────────────────────────────────────────────────
